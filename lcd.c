@@ -75,6 +75,8 @@ void LcdCharacter(char character) {
 void LcdClear(void) {
 	for (uint16_t i = 0; i < LCD_X * LCD_Y / 8; i++)
 		LcdWrite(LCD_D, 0x00);
+	LcdWrite(LCD_C, 64);
+	LcdWrite(LCD_C, 128);
 }
 
 void LcdString(char *characters) {
@@ -82,13 +84,43 @@ void LcdString(char *characters) {
 		LcdCharacter(*characters++);
 }
 
+
+// See http://forum.43oh.com/topic/1954-using-the-internal-temperature-sensor/
 int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD;
 	
 	LcdInit();
-	LcdClear();
-	LcdString("Hello, world!");
 
+	
+    /* Configure ADC Temp Sensor Channel */
+    ADC10CTL1 = INCH_10 + ADC10DIV_3;       // Temp Sensor ADC10CLK/4
+    ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON;
+    __delay_cycles(1000);                   // Wait for ADC Ref to settle
+	
+
+	for(;;)	{
+		LcdClear();
+		LcdString("T=");
+
+		unsigned int adc, temp;
+                                            // take temperature reading
+		ADC10CTL0 |= ENC + ADC10SC;                // Sampling and conversion start
+		while (!(ADC10CTL0 & ADC10IFG));
+		adc = ADC10MEM;
+		temp = ((adc * 27069L - 18169625L) >> 16);
+										// formula from http://forum.43oh.com/topic/1954-using-the-internal-temperature-sensor/
+		while (ADC10CTL0 & ADC10BUSY);      // wait for non-busy
+		ADC10CTL0 &= ~ENC;
+		ADC10CTL0 &= ~ADC10IFG;
+
+			char
+				c = temp % 10,
+				b = (temp / 10) %10,
+				a = temp / 100;
+			LcdCharacter('0' + a);
+			LcdCharacter('0' + b);
+			LcdCharacter('0' + c);
+	}
 	return 0;
 }
