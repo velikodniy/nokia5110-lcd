@@ -10,8 +10,8 @@
 
 // Library settings
 
-#define POUT	P1OUT
-#define PDIR	P1DIR
+#define POUT		P1OUT
+#define PDIR		P1DIR
 
 #define PIN_SCE   BIT0
 #define PIN_RESET BIT1
@@ -66,9 +66,15 @@ void LcdWrite(uint8_t dc, uint8_t data) {
 
 
 void LcdCharacter(char character) {
+	uint8_t n;
 	LcdWrite(LCD_D, 0x00);	// Whitespace before
 	for (uint8_t i = 0; i < 5; i++)
-		LcdWrite(LCD_D, ASCII[character - 0x20][i]);
+	{	
+		n = character - 0x20;
+		if(character < 0)
+			n += 0x100;
+		LcdWrite(LCD_D, ASCII[n][i]);
+	}
 	LcdWrite(LCD_D, 0x00);	// Whitespace after
 }
 
@@ -105,7 +111,7 @@ int main(void)
 
 		unsigned int adc, temp;
                                             // take temperature reading
-		ADC10CTL0 |= ENC + ADC10SC;                // Sampling and conversion start
+		ADC10CTL0 |= ENC + ADC10SC;         // Sampling and conversion start
 		while (!(ADC10CTL0 & ADC10IFG));
 		adc = ADC10MEM;
 		temp = ((adc * 27069L - 18169625L) >> 16);
@@ -118,9 +124,12 @@ int main(void)
 				c = temp % 10,
 				b = (temp / 10) %10,
 				a = temp / 100;
-			LcdCharacter('0' + a);
+			if (a != 0)
+				LcdCharacter('0' + a);
 			LcdCharacter('0' + b);
 			LcdCharacter('0' + c);
+			LcdCharacter(0x80);
+			LcdCharacter('C');
 	}
 	return 0;
 }
