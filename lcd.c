@@ -91,7 +91,6 @@ void LcdString(char *characters) {
 }
 
 
-// See http://forum.43oh.com/topic/1954-using-the-internal-temperature-sensor/
 int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD;
